@@ -113,8 +113,17 @@ with tab1:
             image_array = np.array(image)
             
             st.write("---")
-            if st.button("Detect Objects", type="primary"):
-                with st.spinner(f"Analyzing image with {model_choice}..."):
+            # For webcam snapshot, auto-detect immediately without requiring button click
+            # For file upload, allow triggering detection via button
+            should_detect = False
+            if input_mode == "📷 Live Webcam Snapshot":
+                should_detect = True
+            else:
+                if st.button("Detect Objects", type="primary"):
+                    should_detect = True
+            
+            if should_detect:
+                with st.spinner(f"Analyzing with {model_choice}..."):
                     annotated_img, detections, total_objects, class_counts = detector.detect_objects(
                         image_array, 
                         conf_threshold=conf_threshold,

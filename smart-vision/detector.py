@@ -33,8 +33,14 @@ class ObjectDetector:
                 # Extract ROI
                 roi = annotated_img_rgb[y1:y2, x1:x2]
                 if roi.shape[0] > 0 and roi.shape[1] > 0:
-                    # Apply strong blur
-                    blurred_roi = cv2.GaussianBlur(roi, (99, 99), 30)
+                    h, w = roi.shape[0], roi.shape[1]
+                    # Dynamic odd kernel size bounded by ROI dimensions (max 99)
+                    kw = min(99, w if w % 2 == 1 else w - 1)
+                    kh = min(99, h if h % 2 == 1 else h - 1)
+                    if kw >= 3 and kh >= 3:
+                        blurred_roi = cv2.GaussianBlur(roi, (kw, kh), 30)
+                    else:
+                        blurred_roi = cv2.blur(roi, (max(1, w), max(1, h)))
                     annotated_img_rgb[y1:y2, x1:x2] = blurred_roi
         else:
             # result.plot() returns BGR
@@ -65,3 +71,16 @@ class ObjectDetector:
         total_objects = len(detections)
         
         return annotated_img_rgb, detections, total_objects, class_counts
+
+    def process_video_frame(self, frame_bgr, conf_threshold=0.5, iou_threshold=0.45, classes=None, blur=False):
+        """
+        Processes a single video frame (OpenCV BGR format).
+        Returns annotated_frame_bgr, detections, total_objects, class_counts.
+        """
+        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        annotated_rgb, detections, total_objects, class_counts = self.detect_objects(
+            frame_rgb, conf_threshold=conf_threshold, iou_threshold=iou_threshold, classes=classes, blur=blur
+        )
+        annotated_bgr = cv2.cvtColor(annotated_rgb, cv2.COLOR_RGB2BGR)
+        return annotated_bgr, detections, total_objects, class_counts
+
